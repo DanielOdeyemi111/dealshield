@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+:root {
+  --font-gotham: inherit;
+}
+
+@theme inline {
+  /* Brand kit — Deal Shield (hardcoded so Tailwind resolves them at build) */
+  --color-background: #FFFFFF;
+  --color-foreground: #111827;
+  --color-navy: #111827;
+  --color-off-white: #FFFFFF;
+  --color-warm-ivory: #FFF7E4;
+  --color-brand-green: #22C55E;
+  --color-brand-green-mid: #166534;
+  --color-brand-green-deep: #14532D;
+  --font-sans: var(--font-gotham);
+}
+
+body {
+  background: #FFFFFF;
+  color: #111827;
+  font-family: var(--font-gotham), system-ui, sans-serif;
+}
+
+/* Shimmer sweep — fires ~every 3 s; sweep occupies first 30% of cycle */
+@keyframes shimmer-pass {
+  0% {
+    transform: translateX(-120%) skewX(-15deg);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  30% {
+    transform: translateX(300%) skewX(-15deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(300%) skewX(-15deg);
+    opacity: 0;
+  }
+}
+
+/* Hide scrollbar on horizontal scroll carousels */
+.scroll-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scroll-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 55%;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(255, 255, 255, 0.22) 50%,
+    transparent 100%
+  );
+  transform: translateX(-120%) skewX(-15deg);
+  animation: shimmer-pass 3s ease-in-out infinite;
+  animation-delay: 1.2s;
+  pointer-events: none;
+}
