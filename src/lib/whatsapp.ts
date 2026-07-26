@@ -50,3 +50,32 @@ export async function sendDeliveryConfirmation(to: string, opts: {
     `📬 *Deal Shield* — Item Delivered?\n\nDeal #${opts.dealNumber}: *${opts.item}*\n\nHas the item been delivered as described?\n\nReply *YES* to release funds to the seller.\nReply *NO* to raise a dispute.`
   );
 }
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://dealshield-delta.vercel.app";
+
+export async function sendWelcome(to: string) {
+  return post({
+    to,
+    type: "interactive",
+    interactive: {
+      type: "cta_url",
+      body: {
+        text: "👋 Welcome to *Deal Shield*!\n\nThe safest way to trade online across Africa. Your payment stays locked in escrow until you're 100% happy with your purchase.\n\n🛡️ No fake alerts\n📦 No ghost sellers\n⚡ Disputes resolved in 24hrs\n\nCreate your free account to get started 👇",
+      },
+      action: {
+        name: "cta_url",
+        parameters: {
+          display_text: "Sign Up Now",
+          url: `${APP_URL}/signup?wa=${to}`,
+        },
+      },
+    },
+  });
+}
+
+export async function sendHelp(to: string) {
+  return sendText(
+    to,
+    `🛡️ *Deal Shield* — Help\n\nHere's what you can do:\n\n• Reply *YES* to confirm a delivery\n• Reply *NO* to raise a dispute\n• Reply *HI* to see the welcome message again\n\nNeed more help? Visit dealshield-delta.vercel.app or contact our team.`
+  );
+}

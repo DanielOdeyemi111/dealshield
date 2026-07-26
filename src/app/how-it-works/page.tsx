@@ -173,7 +173,7 @@ export default function HowItWorksPage() {
               <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
             </Link>
             <a
-              href="https://wa.me/"
+              href="https://wa.me/15551878900?text=Hi"
               className="inline-flex items-center justify-center gap-2 border border-[#111827]/15 text-[#111827]/75 px-6 py-3 rounded-full hover:bg-[#111827]/[0.04] transition-all"
             >
               Try on WhatsApp

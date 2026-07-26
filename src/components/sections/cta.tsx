@@ -74,7 +74,7 @@ export default function CtaSection() {
         <FadeUp delay={0.3}>
           <p className="mt-8 text-sm text-[#111827]/40">
             Already on WhatsApp?{" "}
-            <a href="https://wa.me/" className="text-[#166534] font-medium underline underline-offset-2 hover:text-[#14532D]">
+            <a href="https://wa.me/15551878900?text=Hi" className="text-[#166534] font-medium underline underline-offset-2 hover:text-[#14532D]">
               Trade directly via WhatsApp
             </a>
           </p>

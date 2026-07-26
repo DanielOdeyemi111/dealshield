@@ -1,18 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Eye, EyeOff, ArrowRight, Loader2, MessageCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 
-export default function SignupPage() {
+const WA_NUMBER = "15551878900";
+
+function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const waNumber = searchParams.get("wa") ?? "";
+
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", terms: false });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    terms: false,
+  });
+
+  useEffect(() => {
+    if (waNumber) {
+      setForm((f) => ({ ...f, phone: `+${waNumber}` }));
+    }
+  }, [waNumber]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,6 +45,7 @@ export default function SignupPage() {
         data: {
           full_name: form.name,
           phone: form.phone,
+          whatsapp_number: waNumber || null,
         },
       },
     });
@@ -70,6 +88,16 @@ export default function SignupPage() {
     <section className="min-h-screen py-16 flex items-center justify-center" style={{ background: "#BDEECF" }}>
       <div className="w-full max-w-md mx-auto px-6">
         <div className="rounded-2xl bg-white border border-[#111827]/10 shadow-sm p-8">
+
+          {waNumber && (
+            <div className="mb-6 flex items-center gap-3 rounded-xl bg-[#22C55E]/10 border border-[#22C55E]/20 px-4 py-3">
+              <MessageCircle size={18} className="shrink-0 text-[#14532D]" />
+              <p className="text-sm text-[#14532D] font-medium">
+                Signing up via WhatsApp · <span className="font-normal opacity-75">+{waNumber}</span>
+              </p>
+            </div>
+          )}
+
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-[#111827]">Create your account</h1>
             <p className="mt-1 text-sm text-[#111827]/60">
@@ -112,13 +140,21 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#111827] mb-1.5">Phone number</label>
+              <label className="block text-sm font-medium text-[#111827] mb-1.5">
+                Phone number
+                {waNumber && <span className="ml-2 text-xs text-[#22C55E] font-normal">✓ From WhatsApp</span>}
+              </label>
               <input
                 type="tel"
                 value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                onChange={(e) => !waNumber && setForm({ ...form, phone: e.target.value })}
+                readOnly={!!waNumber}
                 placeholder="+234 800 000 0000"
-                className="w-full rounded-xl border border-[#111827]/15 px-4 py-2.5 text-sm text-[#111827] placeholder:text-[#111827]/35 focus:outline-none focus:border-[#22C55E] transition-colors"
+                className={`w-full rounded-xl border px-4 py-2.5 text-sm text-[#111827] placeholder:text-[#111827]/35 focus:outline-none transition-colors ${
+                  waNumber
+                    ? "border-[#22C55E]/30 bg-[#22C55E]/[0.04] text-[#111827]/70 cursor-default"
+                    : "border-[#111827]/15 focus:border-[#22C55E]"
+                }`}
               />
             </div>
 
@@ -171,23 +207,42 @@ export default function SignupPage() {
             </button>
           </form>
 
-          <div className="mt-5 relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#111827]/10" />
-            </div>
-            <div className="relative flex justify-center text-xs text-[#111827]/40">
-              <span className="bg-white px-3">or</span>
-            </div>
-          </div>
+          {!waNumber && (
+            <>
+              <div className="mt-5 relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-[#111827]/10" />
+                </div>
+                <div className="relative flex justify-center text-xs text-[#111827]/40">
+                  <span className="bg-white px-3">or</span>
+                </div>
+              </div>
 
-          <a
-            href="https://wa.me/"
-            className="mt-4 flex items-center justify-center border border-[#111827]/15 text-[#111827]/75 font-medium px-6 py-3 rounded-full hover:bg-[#111827]/[0.04] transition-all text-sm"
-          >
-            Continue with WhatsApp
-          </a>
+              <a
+                href={`https://wa.me/${WA_NUMBER}?text=Hi`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 flex items-center justify-center gap-2 border border-[#111827]/15 text-[#111827]/75 font-medium px-6 py-3 rounded-full hover:bg-[#111827]/[0.04] transition-all text-sm"
+              >
+                <MessageCircle size={16} className="text-[#22C55E]" />
+                Continue with WhatsApp
+              </a>
+            </>
+          )}
         </div>
       </div>
     </section>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <section className="min-h-screen flex items-center justify-center" style={{ background: "#BDEECF" }}>
+        <Loader2 size={24} className="animate-spin text-[#22C55E]" />
+      </section>
+    }>
+      <SignupForm />
+    </Suspense>
   );
 }

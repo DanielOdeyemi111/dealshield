@@ -305,7 +305,7 @@ export default function HeroSection() {
               <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
             </Link>
             <a
-              href="https://wa.me/"
+              href="https://wa.me/15551878900?text=Hi"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 border border-[#111827]/15 text-[#111827]/75 px-6 py-3 rounded-full hover:bg-[#111827]/[0.04] hover:border-[#111827]/25 transition-all"

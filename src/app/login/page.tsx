@@ -115,7 +115,7 @@ export default function LoginPage() {
           </div>
 
           <a
-            href="https://wa.me/"
+            href="https://wa.me/15551878900?text=Hi"
             className="mt-4 flex items-center justify-center border border-[#111827]/15 text-[#111827]/75 font-medium px-6 py-3 rounded-full hover:bg-[#111827]/[0.04] transition-all text-sm"
           >
             Continue with WhatsApp

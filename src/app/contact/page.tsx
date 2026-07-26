@@ -46,7 +46,7 @@ export default function ContactPage() {
                   <div className="font-semibold text-[#111827] text-sm">WhatsApp</div>
                   <div className="text-sm text-[#111827]/60 mt-0.5">Fastest response — typically under 30 minutes</div>
                   <a
-                    href="https://wa.me/"
+                    href="https://wa.me/15551878900?text=Hi"
                     className="mt-2 inline-block text-sm text-[#14532D] font-medium hover:text-[#22C55E] transition-colors"
                   >
                     Message us on WhatsApp →
