@@ -1,8 +1,6 @@
 const BASE = `https://graph.facebook.com/v25.0/${(process.env.WHATSAPP_PHONE_NUMBER_ID ?? "").replace(/^﻿/, "")}`;
 const TOKEN = (process.env.WHATSAPP_TOKEN ?? "").replace(/^﻿/, "");
 
-const SIGNUP_FLOW_ID = "1075722282049946";
-
 async function post(body: object) {
   const res = await fetch(`${BASE}/messages`, {
     method: "POST",
@@ -20,6 +18,35 @@ async function post(body: object) {
 
 export async function sendText(to: string, text: string) {
   return post({ to, type: "text", text: { body: text } });
+}
+
+export async function sendWelcome(to: string, name?: string) {
+  const greeting = name ? `Hey ${name} 👋` : "Hey there 👋";
+  return post({
+    to,
+    type: "interactive",
+    interactive: {
+      type: "button",
+      body: {
+        text: `${greeting} *Deal Shield* here!\n\nI'm your AI escrow manager — every trade, 100% safe.\n\n🛡️ No fake alerts or ghost sellers\n📦 Funds locked until you confirm delivery\n⚖️ Disputes resolved in 24 hours`,
+      },
+      action: {
+        buttons: [
+          {
+            type: "reply",
+            reply: { id: "signup_start", title: "Create Account" },
+          },
+        ],
+      },
+    },
+  });
+}
+
+export async function sendSignupPrompt(to: string) {
+  return sendText(
+    to,
+    `To create your Deal Shield account, reply with your details in this format:\n\nName: Your Full Name\nEmail: your@email.com\nPassword: YourPassword\n\nExample:\nName: Amaka Okonkwo\nEmail: amaka@gmail.com\nPassword: SafePass123\n\n_Minimum 8 characters for password._`
+  );
 }
 
 export async function sendDealCreated(to: string, opts: {
@@ -59,34 +86,9 @@ export async function sendDeliveryConfirmation(to: string, opts: {
   );
 }
 
-export async function sendWelcome(to: string, name?: string) {
-  const greeting = name ? `Hey ${name} 👋` : "Hey there 👋";
-  return post({
-    to,
-    type: "interactive",
-    interactive: {
-      type: "flow",
-      body: {
-        text: `${greeting} *Deal Shield* here!\n\nI'm your AI escrow manager — I make every trade 100% safe.\n\n🛡️ No fake alerts or ghost sellers\n📦 Funds locked until you confirm delivery\n⚖️ Disputes resolved in 24 hours\n\nCreate your free account to get started 👇`,
-      },
-      action: {
-        name: "flow",
-        parameters: {
-          flow_message_version: "3",
-          flow_action: "navigate",
-          flow_token: `ds_${to}_${Date.now()}`,
-          flow_id: SIGNUP_FLOW_ID,
-          flow_cta: "Create Account",
-          mode: "draft",
-        },
-      },
-    },
-  });
-}
-
 export async function sendHelp(to: string) {
   return sendText(
     to,
-    `🛡️ *Deal Shield* — Help\n\nHere's what you can do:\n\n• Reply *YES* to confirm a delivery\n• Reply *NO* to raise a dispute\n• Reply *HI* to see this menu again\n\nNeed support? Chat us on wa.me/2347026714452`
+    `🛡️ *Deal Shield* — Help\n\nReply *HI* to see the welcome menu\nReply *YES* to confirm a delivery\nReply *NO* to raise a dispute\n\nSupport: wa.me/2347026714452`
   );
 }

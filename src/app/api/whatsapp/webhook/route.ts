@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendText, sendWelcome, sendHelp } from "@/lib/whatsapp";
+import { sendText, sendWelcome, sendHelp, sendSignupPrompt } from "@/lib/whatsapp";
 import { createClient } from "@supabase/supabase-js";
 
 const VERIFY_TOKEN = (process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN ?? "dealshield_wh_2025").replace(/^﻿/, "");
 
-const GREETINGS = new Set(["HI", "HELLO", "HEY", "START", "SIGNUP", "SIGN UP", "REGISTER", "HELP", "MENU", "HI DEALSHIELD", "HELLO DEALSHIELD", ""]);
+const GREETINGS = new Set(["HI", "HELLO", "HEY", "START", "SIGNUP", "SIGN UP", "REGISTER", "MENU", "HI DEALSHIELD", "HELLO DEALSHIELD", ""]);
+
+function parseSignup(body: string): { name: string; email: string; password: string } | null {
+  const lines = body.split(/\r?\n/);
+  let name = "", email = "", password = "";
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+    if (lower.startsWith("name:")) name = line.slice(line.indexOf(":") + 1).trim();
+    else if (lower.startsWith("email:")) email = line.slice(line.indexOf(":") + 1).trim();
+    else if (lower.startsWith("password:")) password = line.slice(line.indexOf(":") + 1).trim();
+  }
+  if (!name || !email || !password) return null;
+  return { name, email, password };
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -20,14 +33,14 @@ export async function GET(req: NextRequest) {
   }
 
   return new NextResponse(
-    JSON.stringify({ received_token: token, received_mode: mode, expected_token: VERIFY_TOKEN }),
+    JSON.stringify({ received_token: token, expected_token: VERIFY_TOKEN }),
     { status: 403, headers: { "Content-Type": "application/json" } }
   );
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  console.log("[webhook]", JSON.stringify(body).slice(0, 500));
+  console.log("[webhook]", JSON.stringify(body).slice(0, 600));
 
   const messages = body?.entry?.[0]?.changes?.[0]?.value?.messages;
   if (!messages?.length) return NextResponse.json({ status: "no_message" });
@@ -36,56 +49,67 @@ export async function POST(req: NextRequest) {
   const from: string = msg.from;
   const name: string | undefined = body?.entry?.[0]?.changes?.[0]?.value?.contacts?.[0]?.profile?.name;
 
-  // WhatsApp Flow submission
-  if (msg.type === "interactive" && msg.interactive?.type === "nfm_reply") {
-    const flowData = JSON.parse(msg.interactive.nfm_reply?.response_json ?? "{}");
-    console.log("[flow submission]", JSON.stringify(flowData));
+  // "Create Account" button tapped
+  if (msg.type === "interactive" && msg.interactive?.type === "button_reply") {
+    const id: string = msg.interactive.button_reply?.id ?? "";
+    if (id === "signup_start") {
+      await sendSignupPrompt(from);
+    }
+    return NextResponse.json({ status: "ok" });
+  }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const textBody: string = msg.text?.body?.trim() ?? "";
+  const upper = textBody.toUpperCase();
 
-    if (!supabaseUrl || !serviceKey) {
-      await sendText(from, "⚠️ *Deal Shield* — Account creation is not configured yet. Please contact support.");
+  // Signup details submitted (Name: / Email: / Password: format)
+  const signup = parseSignup(textBody);
+  if (signup && !GREETINGS.has(upper)) {
+    const { name: fullName, email, password } = signup;
+
+    if (password.length < 8) {
+      await sendText(from, "⚠️ *Deal Shield* — Password must be at least 8 characters. Please try again with the same format.");
       return NextResponse.json({ status: "ok" });
     }
 
-    const supabase = createClient(supabaseUrl, serviceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    const fullName = [flowData.first_name, flowData.last_name].filter(Boolean).join(" ") || flowData.full_name || "";
+    if (!supabaseUrl || !anonKey) {
+      await sendText(from, "⚠️ *Deal Shield* — Account creation is unavailable right now. Please try again later.");
+      return NextResponse.json({ status: "ok" });
+    }
 
-    const { error } = await supabase.auth.admin.createUser({
-      email: flowData.email,
-      password: flowData.password,
-      user_metadata: { full_name: fullName, whatsapp: from },
-      email_confirm: true,
+    const supabase = createClient(supabaseUrl, anonKey);
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: fullName, whatsapp: from } },
     });
 
     if (error) {
-      console.error("[supabase error]", error.message);
-      const msg = error.message.includes("already registered")
-        ? `⚠️ *Deal Shield* — That email is already registered. Reply *HI* to start over or visit the app to sign in.`
-        : `❌ *Deal Shield* — Could not create your account: ${error.message}`;
+      console.error("[supabase signUp error]", error.message);
+      const msg = error.message.toLowerCase().includes("already registered")
+        ? `⚠️ *Deal Shield* — That email is already registered. Reply *HI* to start again.`
+        : `❌ *Deal Shield* — Signup failed: ${error.message}`;
       await sendText(from, msg);
     } else {
+      const first = fullName.split(" ")[0];
       await sendText(
         from,
-        `✅ *Deal Shield* — Welcome${fullName ? `, ${fullName.split(" ")[0]}` : ""}! Your account is ready.\n\nYou can now create escrow deals right here on WhatsApp. Reply *HELP* to see what I can do.`
+        `✅ *Deal Shield* — Welcome, ${first}! Your account has been created.\n\nCheck *${email}* for a confirmation link, then you're all set to make your first safe deal. 🛡️`
       );
     }
 
     return NextResponse.json({ status: "ok" });
   }
 
-  const text = (msg.text?.body?.trim() ?? "").toUpperCase();
-
-  if (GREETINGS.has(text)) {
+  // Standard keyword handling
+  if (GREETINGS.has(upper)) {
     await sendWelcome(from, name);
-  } else if (text === "YES") {
+  } else if (upper === "YES") {
     await sendText(from, "✅ *Deal Shield* — Thank you for confirming!\n\nFunds are being released to the seller. Your deal is complete. 🎉");
-  } else if (text === "NO") {
-    await sendText(from, "⚠️ *Deal Shield* — Dispute opened.\n\nOur team will review your case within 24 hours. Please describe what went wrong and we'll get back to you promptly.");
+  } else if (upper === "NO") {
+    await sendText(from, "⚠️ *Deal Shield* — Dispute opened.\n\nOur team will review your case within 24 hours. Please describe what went wrong.");
   } else {
     await sendHelp(from);
   }
