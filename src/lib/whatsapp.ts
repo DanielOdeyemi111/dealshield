@@ -1,5 +1,7 @@
-const BASE = `https://graph.facebook.com/v20.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}`;
-const TOKEN = process.env.WHATSAPP_TOKEN!;
+const BASE = `https://graph.facebook.com/v25.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}`;
+const TOKEN = (process.env.WHATSAPP_TOKEN ?? "").replace(/^﻿/, "");
+
+const SIGNUP_FLOW_ID = "1075722282049946";
 
 async function post(body: object) {
   const res = await fetch(`${BASE}/messages`, {
@@ -7,7 +9,13 @@ async function post(body: object) {
     headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
     body: JSON.stringify({ messaging_product: "whatsapp", ...body }),
   });
-  return res.json();
+  const json = await res.json();
+  if (!res.ok) {
+    console.error("[WhatsApp API error]", JSON.stringify(json));
+  } else {
+    console.log("[WhatsApp API ok]", JSON.stringify(json));
+  }
+  return json;
 }
 
 export async function sendText(to: string, text: string) {
@@ -51,22 +59,25 @@ export async function sendDeliveryConfirmation(to: string, opts: {
   );
 }
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://dealshield-delta.vercel.app";
-
-export async function sendWelcome(to: string) {
+export async function sendWelcome(to: string, name?: string) {
+  const greeting = name ? `Hey ${name} 👋` : "Hey there 👋";
   return post({
     to,
     type: "interactive",
     interactive: {
-      type: "cta_url",
+      type: "flow",
       body: {
-        text: "👋 Welcome to *Deal Shield*!\n\nThe safest way to trade online across Africa. Your payment stays locked in escrow until you're 100% happy with your purchase.\n\n🛡️ No fake alerts\n📦 No ghost sellers\n⚡ Disputes resolved in 24hrs\n\nCreate your free account to get started 👇",
+        text: `${greeting} *Deal Shield* here!\n\nI'm your AI escrow manager — I make every trade 100% safe.\n\n🛡️ No fake alerts or ghost sellers\n📦 Funds locked until you confirm delivery\n⚖️ Disputes resolved in 24 hours\n\nCreate your free account to get started 👇`,
       },
       action: {
-        name: "cta_url",
+        name: "flow",
         parameters: {
-          display_text: "Sign Up Now",
-          url: `${APP_URL}/signup?wa=${to}`,
+          flow_message_version: "3",
+          flow_action: "navigate",
+          flow_token: `ds_${to}_${Date.now()}`,
+          flow_id: SIGNUP_FLOW_ID,
+          flow_cta: "Create Account",
+          mode: "draft",
         },
       },
     },
@@ -76,6 +87,6 @@ export async function sendWelcome(to: string) {
 export async function sendHelp(to: string) {
   return sendText(
     to,
-    `🛡️ *Deal Shield* — Help\n\nHere's what you can do:\n\n• Reply *YES* to confirm a delivery\n• Reply *NO* to raise a dispute\n• Reply *HI* to see the welcome message again\n\nNeed more help? Visit dealshield-delta.vercel.app or contact our team.`
+    `🛡️ *Deal Shield* — Help\n\nHere's what you can do:\n\n• Reply *YES* to confirm a delivery\n• Reply *NO* to raise a dispute\n• Reply *HI* to see this menu again\n\nNeed support? Chat us on wa.me/2347026714452`
   );
 }
