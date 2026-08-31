@@ -1,4 +1,4 @@
-const BASE = `https://graph.facebook.com/v25.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}`;
+const BASE = `https://graph.facebook.com/v25.0/${(process.env.WHATSAPP_PHONE_NUMBER_ID ?? "").replace(/^﻿/, "")}`;
 const TOKEN = (process.env.WHATSAPP_TOKEN ?? "").replace(/^﻿/, "");
 
 const SIGNUP_FLOW_ID = "1075722282049946";
